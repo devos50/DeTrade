@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/hyperledger/fabric/core/chaincode/lib/cid"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/protos/peer"
 	"strconv"
@@ -29,7 +28,7 @@ func compareBytes(a []byte, b []byte) bool {
 }
 
 func (s EnergyMarketContract) Init(stub shim.ChaincodeStubInterface) peer.Response {
-	serializedID, _ := cid.GetMSPID(stub)
+	serializedID, _ := GetMSPID(stub)
 	stub.PutState("ttp", []byte(serializedID))
 	return shim.Success([]byte(serializedID))
 }
@@ -50,7 +49,7 @@ func (s EnergyMarketContract) Invoke(stub shim.ChaincodeStubInterface) peer.Resp
 
 func (s *EnergyMarketContract) registerHousehold(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	admin, _ := stub.GetState("ttp")
-	user, _ := cid.GetMSPID(stub)
+	user, _ := GetMSPID(stub)
 	if !compareBytes(admin, []byte(user)) {
 		return shim.Error("This method can only be invoked by the TTP")
 	}
@@ -63,7 +62,7 @@ func (s *EnergyMarketContract) registerHousehold(stub shim.ChaincodeStubInterfac
 
 func (s *EnergyMarketContract) mintEuroToken(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	admin, _ := stub.GetState("ttp")
-	user, _ := cid.GetMSPID(stub)
+	user, _ := GetMSPID(stub)
 	if !compareBytes(admin, []byte(user)) {
 		return shim.Error("This method can only be invoked by the TTP")
 	}
