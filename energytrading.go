@@ -31,7 +31,7 @@ func compareBytes(a []byte, b []byte) bool {
 func (s EnergyMarketContract) Init(stub shim.ChaincodeStubInterface) peer.Response {
 	serializedID, _ := cid.GetMSPID(stub)
 	stub.PutState("ttp", []byte(serializedID))
-	return shim.Success(nil)
+	return shim.Success([]byte(serializedID))
 }
 
 func (s EnergyMarketContract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
