@@ -17,6 +17,7 @@ contract EnergyTrading {
     mapping (address => uint256) _euroTokenBalances;
     mapping (address => uint256[]) _clearingResults;
     mapping (address => bool[]) _roles;  // true if the user is a buyer in this round
+    mapping (address => bool) _receivedEnergy;
     uint8 public clearingResultsReceived = 0;
     
     uint256 maxDeltaQuantity = 0;
@@ -136,6 +137,7 @@ contract EnergyTrading {
     	require(!isClearing);
         require(_roles[msg.sender][currentPeriod]);  // make sure the sender is an energy buyer in the current round
         require(balanceOf(msg.sender) > 0);
+        require(!_receivedEnergy[msg.sender]);
 
         uint256 price = getTotalPrice(currentPeriod, msg.sender);
         _euroTokenBalances[msg.sender] -= price;

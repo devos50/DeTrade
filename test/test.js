@@ -192,6 +192,16 @@ contract("EnergyTrading unit tests", async accounts => {
 		await truffleAssert.reverts(contract.receivedEnergy.sendTransaction());
 	});
 
+	it("test receiving energy while we already received energy", async () => {
+		await contract.registerHousehold.sendTransaction(accounts[1]);
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
+		await contract.mintEuroToken.sendTransaction(accounts[1], 100);
+
+		await contract.receivedEnergy.sendTransaction({"from": accounts[1]});
+		await truffleAssert.reverts(contract.receivedEnergy.sendTransaction());
+	});
+
 	it("test receiving energy and the redistribution of EuroTokens", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
 		await contract.registerHousehold.sendTransaction(accounts[2]);
