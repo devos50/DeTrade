@@ -81,23 +81,23 @@ contract("EnergyTrading unit tests", async accounts => {
 	});
 
 	it("test the storage of clearing results by a non-registered household", async () => {
-		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4]));
+		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4], 1, 1));
 	});
 
 	it("test the storage of clearing results with an invalid length", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4], {"from": accounts[1]}));
+		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4], 1, 1, {"from": accounts[1]}));
 	});
 
 	it("test storing the clearing results twice", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]}) // this should work
-		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]}));
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]}) // this should work
+		await truffleAssert.reverts(contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]}));
 	});
 
 	it("test storing valid clearing results", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]})
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]})
 		
 		let isClearing = await contract.isClearing(function(err, res) { return res; });
 		assert.equal(isClearing, false);
@@ -108,11 +108,11 @@ contract("EnergyTrading unit tests", async accounts => {
 		await contract.registerHousehold.sendTransaction(accounts[2]);
 
 		let clearingResults = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[1]});
 		var isClearing = await contract.isClearing(function(err, res) { return res; });
 		assert.equal(isClearing, true);
 
-		contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[2]});
+		contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[2]});
 		isClearing = await contract.isClearing(function(err, res) { return res; });
 		assert.equal(isClearing, false);
 	});
@@ -123,13 +123,13 @@ contract("EnergyTrading unit tests", async accounts => {
 
 		let clearingResults1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 		let clearingResults2 = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]
-		await contract.storeClearingResults.sendTransaction(clearingResults1, {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction(clearingResults1, 1, 1, {"from": accounts[1]});
 		var isClearing = await contract.isClearing(function(err, res) { return res; });
 		assert.equal(isClearing, true);
 		let clearingResultsReceived = await contract.clearingResultsReceived(function(err, res) { return res; });
 		assert.equal(clearingResultsReceived, 1);
 
-		contract.storeClearingResults.sendTransaction(clearingResults2, {"from": accounts[2]});
+		contract.storeClearingResults.sendTransaction(clearingResults2, 1, 1, {"from": accounts[2]});
 
 		// everything should have been reset now
 		isClearing = await contract.isClearing(function(err, res) { return res; });
@@ -149,13 +149,13 @@ contract("EnergyTrading unit tests", async accounts => {
 
 	it("test getting the energy price from the clearing results for an household for an invalid period", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
 		await truffleAssert.reverts(contract.getTotalPrice.sendTransaction(5, accounts[1]));
 	});
 
 	it("test getting the energy price from the clearing results", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
 		
 		let totalPrice = await contract.getTotalPrice.call(0, accounts[1]);
 		assert.equal(totalPrice.toNumber(), 2);
@@ -181,20 +181,20 @@ contract("EnergyTrading unit tests", async accounts => {
 
 	it("test receiving energy while we have not set a role", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
 		await truffleAssert.reverts(contract.receivedEnergy.sendTransaction());
 	});
 
 	it("test receiving energy while we do not have sufficient funds", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
 		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
 		await truffleAssert.reverts(contract.receivedEnergy.sendTransaction());
 	});
 
 	it("test receiving energy while we already received energy", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
 		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
 		await contract.mintEuroToken.sendTransaction(accounts[1], 100);
 
@@ -210,8 +210,8 @@ contract("EnergyTrading unit tests", async accounts => {
 		await contract.initializeRoles.sendTransaction([false, false, false, false], {"from": accounts[2]});
 		
 		let clearingResults = [1, 2, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-		await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[1]});
-		await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[2]});
+		await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[1]});
+		await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[2]});
 
 		await contract.mintEuroToken.sendTransaction(accounts[1], 100);
 

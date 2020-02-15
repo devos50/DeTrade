@@ -26,9 +26,9 @@ contract("EnergyTrading e2e tests", async accounts => {
 
     	// step 2: store clearing results
     	let clearingResults = [4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5];
-    	await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[1]});
-    	await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[2]});
-    	await contract.storeClearingResults.sendTransaction(clearingResults, {"from": accounts[3]});
+    	await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[1]});
+    	await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[2]});
+    	await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[3]});
 
     	// check: we should now have exited the clearing phase
     	isClearing = await contract.isClearing(function(err, res) { return res; });
