@@ -112,7 +112,7 @@ contract("EnergyTrading unit tests", async accounts => {
 		await contract.registerHousehold.sendTransaction(accounts[2]);
 
 		let clearingResults1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		let clearingResults2 = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]
+		let clearingResults2 = [100000000005, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 		await contract.storeClearingResults.sendTransaction(clearingResults1, 1, 1, {"from": accounts[1]});
 		var isClearing = await contract.isClearing(function(err, res) { return res; });
 		assert.equal(isClearing, true);

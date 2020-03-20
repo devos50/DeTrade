@@ -7,6 +7,8 @@ contract EnergyTrading {
     address[] households;     // the participating households.
     mapping(address => bool) _isRegistered;
     mapping(address => uint256) _householdIndices;
+    uint256[] _clearingMinValues;
+    uint256[] _clearingMaxValues;
     
     uint8 public totalPeriods = 4;   // the total number of periods in each horizon
     uint8 public currentPeriod = 0;  // the current period we are in
@@ -14,7 +16,7 @@ contract EnergyTrading {
     uint256 public totalHouseholds = 0;
     uint8 public expectedTransfers = 0;  // how many energy transfers we expect in each horizon
     uint8 public transfersThisPeriod = 0;  // the number of transfers we had in this round
-    uint256 public poolBalance = 0;
+    int256 public poolBalance = 0;
     
     mapping (address => uint256) _euroTokenBalances;
     mapping (address => ClearingResult) _clearingResults;
@@ -24,8 +26,11 @@ contract EnergyTrading {
     uint8 public clearingResultsReceived = 0;
     ClearingResult bestClearingResult;
     
-    uint256 maxDeltaQuantity = 0;
-    uint256 maxDeltaPrice = 0;
+    uint256 maxDelta = 100000000000;
+
+    event ClearingResultsValid();
+    event ClearingResultsInvalid(uint diff);
+    event PoolPayment(address from, address to, uint amount);
 
     struct ClearingResult {
         uint256[] clearingResult;
@@ -82,16 +87,35 @@ contract EnergyTrading {
         require(isClearing);
 
         _clearingResults[msg.sender] = ClearingResult(results, sw, nb);
+
+        // iterate over all results and compute the min/max value
+        if(clearingResultsReceived == 0) {
+            for(uint index = 0; index < results.length; index++) {
+                _clearingMinValues.push(results[index]);
+                _clearingMaxValues.push(results[index]);
+            }
+        }
+        else {
+            for(uint index = 0; index < results.length; index++) {
+                if(results[index] < _clearingMinValues[index]) { _clearingMinValues[index] = results[index]; }
+                if(results[index] > _clearingMaxValues[index]) { _clearingMaxValues[index] = results[index]; }
+            }
+        }
+
         clearingResultsReceived++;
         
         if(clearingResultsReceived == households.length) {
-            if(validateAllClearingResults()) {
+            uint maxDiff = getMaxClearingDiff();
+            if(maxDiff <= maxDelta) {
+                emit ClearingResultsValid();
+
                 // move to the trading horizon
                 selectBestClearingResult();
                 isClearing = false;
                 currentPeriod = 0;
             } else {
                 // the clearing results are not valid
+                emit ClearingResultsInvalid(maxDiff);
                 clearingResultsReceived = 0;
                 resetClearingResults();
             }
@@ -104,29 +128,19 @@ contract EnergyTrading {
             delete _clearingResults[householdAddress];
         }
         delete bestClearingResult;
+        delete _clearingMinValues;
+        delete _clearingMaxValues;
     }
     
-    function validateAllClearingResults() private view returns (bool) {
-        // validate all clearing results by iterating through the items in the result
-        for(uint i = 0; i < households.length * 2 * totalPeriods; i++) {
-            uint256 minValue = UINT256_MAX;
-            uint256 maxValue = 0;
-            for(uint householdIndex = 0; householdIndex < households.length; householdIndex++) {
-                address householdAddress = households[householdIndex];
-                uint256[] memory clearingResult = _clearingResults[householdAddress].clearingResult;
-                uint256 value = clearingResult[i];
-                if(value < minValue) { minValue = value; }
-                if(value > maxValue) { maxValue = value; }
-            }
-            
-            if(i % 2 == 0 && maxValue - minValue > maxDeltaQuantity) { // quantity
-                return false;
-            }
-            if(i % 2 == 0 && maxValue - minValue > maxDeltaPrice) { // price
-                return false;
-            }
+    function getMaxClearingDiff() private view returns (uint) {
+        // get the highest difference between all entries of the clearing results.
+        uint maxDiff = 0;
+        for(uint index = 0; index < _clearingMinValues.length; index++) {
+            uint diff = _clearingMaxValues[index] - _clearingMinValues[index];
+            if(diff > maxDiff) { maxDiff = diff; }
         }
-        return true;
+
+        return maxDiff;
     }
 
     function selectBestClearingResult() private {
@@ -180,7 +194,8 @@ contract EnergyTrading {
 
         uint256 price = getTotalPrice(currentPeriod, msg.sender);
         _euroTokenBalances[msg.sender] -= price;
-        poolBalance += price;
+        poolBalance += int(price);
+        emit PoolPayment(msg.sender, address(0), price);
         transfersThisPeriod++;
         
         if(transfersThisPeriod == expectedTransfers) {
@@ -207,7 +222,8 @@ contract EnergyTrading {
             if(!_roles[householdAddress]) {
                 uint256 price = getTotalPrice(currentPeriod, householdAddress);
                 _euroTokenBalances[householdAddress] += price;
-                poolBalance -= price;
+                emit PoolPayment(address(0), householdAddress, price);
+                poolBalance -= int(price);
             }
         }
     }
