@@ -47,37 +47,27 @@ contract("EnergyTrading unit tests", async accounts => {
 	});
 
 	it("test initializing the roles by an unregistered household", async () => {
-		await truffleAssert.reverts(contract.initializeRoles.sendTransaction([true, true, false, false]));
-	});
-
-	it("test initializing the roles with an invalid array", async () => {
-		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await truffleAssert.reverts(contract.initializeRoles.sendTransaction([true, true, false], {"from": accounts[1]}));
+		await truffleAssert.reverts(contract.initializeRole.sendTransaction(true));
 	});
 
 	it("test initializing the roles", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
 		await contract.registerHousehold.sendTransaction(accounts[2]);
-		await contract.initializeRoles.sendTransaction([true, true, false, false], {"from": accounts[1]});
-		await contract.initializeRoles.sendTransaction([false, true, false, true], {"from": accounts[2]});
+		await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
 
-		let expectedTransfers = await contract.expectedTransfers(0, function(err, res) { return res; });
+		let expectedTransfers = await contract.expectedTransfers(function(err, res) { return res; });
 		assert.equal(expectedTransfers, 1);
 
-		expectedTransfers = await contract.expectedTransfers(1, function(err, res) { return res; });
-		assert.equal(expectedTransfers, 2);
+		await contract.initializeRole.sendTransaction(false, {"from": accounts[2]});
 
-		expectedTransfers = await contract.expectedTransfers(2, function(err, res) { return res; });
-		assert.equal(expectedTransfers, 0);
-
-		expectedTransfers = await contract.expectedTransfers(3, function(err, res) { return res; });
+		expectedTransfers = await contract.expectedTransfers(function(err, res) { return res; });
 		assert.equal(expectedTransfers, 1);
 	});
 
 	it("test initializing the roles twice", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
-		await contract.initializeRoles.sendTransaction([true, true, false, false], {"from": accounts[1]});
-		await truffleAssert.reverts(contract.initializeRoles.sendTransaction([true, true, false, false], {"from": accounts[1]}));
+		await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
+		await truffleAssert.reverts(contract.initializeRole.sendTransaction(false, {"from": accounts[1]}));
 	});
 
 	it("test the storage of clearing results by a non-registered household", async () => {
@@ -188,14 +178,14 @@ contract("EnergyTrading unit tests", async accounts => {
 	it("test receiving energy while we do not have sufficient funds", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
 		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
-		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
+		await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
 		await truffleAssert.reverts(contract.receivedEnergy.sendTransaction());
 	});
 
 	it("test receiving energy while we already received energy", async () => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
 		await contract.storeClearingResults.sendTransaction([1, 2, 3, 4, 5, 6, 7, 8], 1, 1, {"from": accounts[1]});
-		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
+		await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
 		await contract.mintEuroToken.sendTransaction(accounts[1], 100);
 
 		await contract.receivedEnergy.sendTransaction({"from": accounts[1]});
@@ -206,8 +196,8 @@ contract("EnergyTrading unit tests", async accounts => {
 		await contract.registerHousehold.sendTransaction(accounts[1]);
 		await contract.registerHousehold.sendTransaction(accounts[2]);
 		
-		await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
-		await contract.initializeRoles.sendTransaction([false, false, false, false], {"from": accounts[2]});
+		await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
+		await contract.initializeRole.sendTransaction(false, {"from": accounts[2]});
 		
 		let clearingResults = [1, 2, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 		await contract.storeClearingResults.sendTransaction(clearingResults, 1, 1, {"from": accounts[1]});

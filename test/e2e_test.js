@@ -20,9 +20,9 @@ contract("EnergyTrading e2e tests", async accounts => {
 
     it("E2E test", async () => {
     	// step 1: initialize roles
-    	await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[1]});
-    	await contract.initializeRoles.sendTransaction([true, true, true, true], {"from": accounts[2]});
-    	await contract.initializeRoles.sendTransaction([false, false, false, false], {"from": accounts[3]});
+    	await contract.initializeRole.sendTransaction(true, {"from": accounts[1]});
+    	await contract.initializeRole.sendTransaction(true, {"from": accounts[2]});
+    	await contract.initializeRole.sendTransaction(false, {"from": accounts[3]});
 
     	// step 2: store clearing results
     	let clearingResults = [4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5, 4, 5, 4, 5, 8, 5];

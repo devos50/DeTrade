@@ -12,13 +12,14 @@ contract EnergyTrading {
     uint8 public currentPeriod = 0;  // the current period we are in
     bool public isClearing = true;   // whether we are clearing the market or trading
     uint256 public totalHouseholds = 0;
-    uint8[] public expectedTransfers = [0, 0, 0, 0];  // how many energy transfers we expect in each period
-    uint8 transfersThisPeriod = 0;  // the number of transfers we had in this round
+    uint8 public expectedTransfers = 0;  // how many energy transfers we expect in each horizon
+    uint8 public transfersThisPeriod = 0;  // the number of transfers we had in this round
     uint256 public poolBalance = 0;
     
     mapping (address => uint256) _euroTokenBalances;
     mapping (address => ClearingResult) _clearingResults;
-    mapping (address => bool[]) _roles;  // true if the user is a buyer in this round
+    mapping (address => bool) _roles;   // true if the user is a buyer in this round
+    mapping (address => bool) _roleSet; // whether the role has been set
     mapping (address => bool) _receivedEnergy;
     uint8 public clearingResultsReceived = 0;
     ClearingResult bestClearingResult;
@@ -62,17 +63,15 @@ contract EnergyTrading {
         return _euroTokenBalances[household];
     }
     
-    function initializeRoles(bool[] memory roles) public {
+    function initializeRole(bool role) public {
     	require(isRegisteredHousehold(msg.sender));
-        require(roles.length == totalPeriods);
-        require(_roles[msg.sender].length == 0);
+        require(!_roleSet[msg.sender]);
 
-        _roles[msg.sender] = roles;
+        _roles[msg.sender] = role;
+        _roleSet[msg.sender] = true;
         
-        for (uint i = 0; i < roles.length; i++) {
-            if(roles[i]) {
-                expectedTransfers[i]++;
-            }
+        if(role) {
+            expectedTransfers++;
         }
     }
     
@@ -175,7 +174,7 @@ contract EnergyTrading {
     function receivedEnergy() public {
     	require(isRegisteredHousehold(msg.sender));
     	require(!isClearing);
-        require(_roles[msg.sender][currentPeriod]);  // make sure the sender is an energy buyer in the current round
+        require(_roles[msg.sender]);  // make sure the sender is an energy buyer in the current round
         require(balanceOf(msg.sender) > 0);
         require(!_receivedEnergy[msg.sender]);
 
@@ -184,14 +183,18 @@ contract EnergyTrading {
         poolBalance += price;
         transfersThisPeriod++;
         
-        if(transfersThisPeriod == expectedTransfers[currentPeriod]) {
+        if(transfersThisPeriod == expectedTransfers) {
         	redistributePoolFunds();
             currentPeriod++;
             if(currentPeriod == totalPeriods) {
                 isClearing = true;
-                expectedTransfers = [0, 0, 0, 0];
+                expectedTransfers = 0;
                 transfersThisPeriod = 0;
                 clearingResultsReceived = 0;
+                for(uint householdIndex = 0; householdIndex < households.length; householdIndex++) {
+                    address householdAddress = households[householdIndex];
+                    _roleSet[householdAddress] = false;
+                }
                 resetClearingResults();
             }
         }
@@ -201,7 +204,7 @@ contract EnergyTrading {
         // redistribute pool funds over all sellers
         for(uint householdIndex = 0; householdIndex < households.length; householdIndex++) {
             address householdAddress = households[householdIndex];
-            if(!_roles[householdAddress][currentPeriod]) {
+            if(!_roles[householdAddress]) {
                 uint256 price = getTotalPrice(currentPeriod, householdAddress);
                 _euroTokenBalances[householdAddress] += price;
                 poolBalance -= price;
