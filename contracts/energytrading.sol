@@ -31,6 +31,8 @@ contract EnergyTrading {
     event ClearingResultsValid();
     event ClearingResultsInvalid(uint diff);
     event PoolPayment(address from, address to, uint amount);
+    event PoolRedistribution();
+    event HorizonOver();
 
     struct ClearingResult {
         uint256[] clearingResult;
@@ -201,10 +203,12 @@ contract EnergyTrading {
         if(transfersThisPeriod == expectedTransfers) {
         	redistributePoolFunds();
             currentPeriod++;
+            transfersThisPeriod = 0;
+            
             if(currentPeriod == totalPeriods) {
+                emit HorizonOver();
                 isClearing = true;
                 expectedTransfers = 0;
-                transfersThisPeriod = 0;
                 clearingResultsReceived = 0;
                 for(uint householdIndex = 0; householdIndex < households.length; householdIndex++) {
                     address householdAddress = households[householdIndex];
@@ -217,6 +221,7 @@ contract EnergyTrading {
     
     function redistributePoolFunds() private {
         // redistribute pool funds over all sellers
+        emit PoolRedistribution();
         for(uint householdIndex = 0; householdIndex < households.length; householdIndex++) {
             address householdAddress = households[householdIndex];
             if(!_roles[householdAddress]) {

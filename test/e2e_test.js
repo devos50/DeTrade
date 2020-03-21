@@ -45,7 +45,7 @@ contract("EnergyTrading e2e tests", async accounts => {
     	await contract.storeClearingResults.sendTransaction(clearingResults3, 43085, 50, {"from": accounts[3]});
     	await contract.storeClearingResults.sendTransaction(clearingResults4, 42575, 45, {"from": accounts[4]});
     	await contract.storeClearingResults.sendTransaction(clearingResults5, 42340, 50, {"from": accounts[5]});
-    	let finalTx = await contract.storeClearingResults.sendTransaction(clearingResults6, 41735, 106, {"from": accounts[6]});
+    	var finalTx = await contract.storeClearingResults.sendTransaction(clearingResults6, 41735, 106, {"from": accounts[6]});
 
     	truffleAssert.eventNotEmitted(finalTx, 'ClearingResultsInvalid');
     	truffleAssert.eventEmitted(finalTx, 'ClearingResultsValid');
@@ -86,5 +86,27 @@ contract("EnergyTrading e2e tests", async accounts => {
 
 		tokenBalance = await contract.balanceOf.call(accounts[6]);
 		assert.equal(tokenBalance.toNumber() == 1000000000000000, true);
+
+		// repeat this for the next rounds
+
+		// round 2
+		await contract.receivedEnergy.sendTransaction({"from": accounts[4]});
+		await contract.receivedEnergy.sendTransaction({"from": accounts[5]});
+		await contract.receivedEnergy.sendTransaction({"from": accounts[6]});
+
+		// round 3
+		await contract.receivedEnergy.sendTransaction({"from": accounts[4]});
+		await contract.receivedEnergy.sendTransaction({"from": accounts[5]});
+		await contract.receivedEnergy.sendTransaction({"from": accounts[6]});
+
+		// round 4
+		await contract.receivedEnergy.sendTransaction({"from": accounts[4]});
+		await contract.receivedEnergy.sendTransaction({"from": accounts[5]});
+		finalTx = await contract.receivedEnergy.sendTransaction({"from": accounts[6]});
+		truffleAssert.eventEmitted(finalTx, 'HorizonOver');
+
+		// the market should have been reset now
+		isClearing = await contract.isClearing(function(err, res) { return res; });
+		assert.equal(isClearing, true);
 	});
 });
